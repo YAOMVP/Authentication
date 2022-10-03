@@ -1,0 +1,27 @@
+{
+    "name": "secrets---starting-code",
+    "version": "1.0.0",
+    "description": "",
+    "main": "app.js",
+    "scripts": {
+        "start": "node app.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/YAOMVP/Authentication.git"
+    },
+    "author": "Olivia Chen",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/YAOMVP/Authentication/issues"
+    },
+    "homepage": "https://github.com/YAOMVP/Authentication#readme",
+    "dependencies": {
+        "dotenv": "^16.0.3",
+        "ejs": "^3.1.8",
+        "express": "^4.18.1",
+        "mongoose": "^6.6.3",
+        "mongoose-encryption": "^2.1.2"
+    }
+}
