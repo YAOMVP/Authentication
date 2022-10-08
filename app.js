@@ -12,6 +12,8 @@ const session = require('express-session'); //Import "express-session" library
 const passport = require("passport"); // Import the primary "Passport JS" library
 const passportLocalMongoose = require('passport-local-mongoose'); //Users could be authenticated against a username/password saved in a database that created locally.
 
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const findOrCreate = require('mongoose-findorcreate');
 
 app.use(express.static("public"));
 app.set("view engine", "ejs");
@@ -45,12 +47,13 @@ async function main() {
 
 const userSchema = new mongoose.Schema({ //Define our data structure.
     email: "String",
-    password: "String"
+    password: "String",
+    googleId: String
 });
 
 
 userSchema.plugin(passportLocalMongoose); //To hash and salt our passwords and to save users into mongoDB database. 
-
+userSchema.plugin(findOrCreate);
 
 //Then, we create a model from that userSchema. The first parameter is the name of the collection in the database. The second one is to set up mongoose to use the userSchema
 const User = mongoose.model("User", userSchema);
@@ -61,8 +64,18 @@ const User = mongoose.model("User", userSchema);
 //The createStrategy is responsible to setup passport-local LocalStrategy with the correct options,on our User model — courtesy of passport-local-mongoose — which takes care of everything so that we don’t have to set up the strategy. Pretty handy.
 passport.use(User.createStrategy());
 //To maintain a login session, Passport serializes and deserializes user information from the session.
-passport.serializeUser(User.serializeUser()); //Serialize the user instance with the information we pass on to it and store it in the session via a cookie.
-passport.deserializeUser(User.deserializeUser()); //Deserialize the instance, providing it the unique cookie identifier as a “credential”.
+// passport.serializeUser(User.serializeUser()); //Serialize the user instance with the information we pass on to it and store it in the session via a cookie.
+// passport.deserializeUser(User.deserializeUser()); //Deserialize the instance, providing it the unique cookie identifier as a “credential”.
+
+passport.serializeUser(function(user, done) {
+    done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done) {
+    User.findById(id, function(err, user) {
+        done(err, user);
+    });
+});
 
 
 
@@ -71,11 +84,47 @@ passport.deserializeUser(User.deserializeUser()); //Deserialize the instance, pr
 
 
 
+passport.use(new GoogleStrategy({
+        clientID: process.env.CLIENT_ID,
+        clientSecret: process.env.CLIENT_SECRET,
+        callbackURL: "http://localhost:3000/auth/google/secrets"
+    },
+    function(accessToken, refreshToken, profile, cb) {
+        console.log(profile);
+
+        User.findOrCreate({ googleId: profile.id }, function(err, user) {
+            return cb(err, user);
+        });
+    }
+));
 
 
 app.get("/", (req, res) => {
     res.render("home");
 });
+
+
+app.get('/auth/google',
+    passport.authenticate('google', { scope: ['profile'] }));
+
+
+app.get('/auth/google/secrets',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    function(req, res) {
+        // Successful authentication, redirect secrets.
+        res.redirect('/secrets');
+    });
+
+
+
+
+
+
+
+
+
+
+
 
 app.get("/login", (req, res) => {
     res.render("login");
@@ -198,6 +247,20 @@ app.get("/logout", (req, res) => {
         }
     });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
